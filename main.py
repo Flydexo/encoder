@@ -1,7 +1,19 @@
+import hashlib
 import sys
+import os
+import importlib
 
 MAX_LENGTH=8
 BIT_SPLIT=4
+
+def load_implementations():
+    implementations_files = [f for f in os.listdir('implementations') if os.path.isfile('./implementations/'+f) and f.endswith('.py')]
+    implementations={}
+    
+    for f in implementations_files:
+        implementations[f[0:-3]]='./implementations/'+f
+
+    return implementations
 
 def base_to_decimal(value, base):
     value_list = list(value)
@@ -13,7 +25,6 @@ def base_to_decimal(value, base):
             if v >= base:
                 print('Wrong character in string for base')
                 exit()
-                return 0
             dec_value+=v*base**i 
         except:
             print('Wrong character in string for base')
@@ -52,13 +63,22 @@ def decimal_to_base(value, base):
 
     return bits_string
 
-def convert_base_to_base(value, i_base, g_base):
-    dec_value=base_to_decimal(value, i_base)
-    final_value=decimal_to_base(dec_value, g_base)
+def convert_base_to_base(value, i_base, g_base, initial_base_module, goal_base_module):
+    dec_value=0
+    if initial_base_module:
+        dec_value=initial_base_module.from_base(value)
+    else:
+        dec_value=base_to_decimal(value, i_base)
+    final_value=0
+    if goal_base_module:
+        final_value=goal_base_module.to_base(value)
+    else:
+        final_value=decimal_to_base(dec_value, g_base)
+
     if len(final_value.replace(' ', '')) > MAX_LENGTH:
         return print('Value too high (max 8 symbols)')
     if(g_base == 10):
-        final_value = str(int(final_value))
+        final_value = str(int(final_value.replace(' ', '')))
     print('Result: '+final_value)
 
 def check_int(i): 
@@ -77,11 +97,13 @@ def main():
             try:
                 decomposed_arg=sys.argv[i].split('=')
                 index=decomposed_arg[0]
-                value=decomposed_arg[1]
+                value=sys.argv[i][len(index)+1:len(sys.argv[i])]
                 arguments[index] = value
             except:
                 print('Could not read argument', sys.argv[i])
-                            
+
+    implementations = load_implementations()
+
     global IBASES
     global GBASES
     global MAX_IBASE
@@ -110,7 +132,7 @@ def main():
         initial_base=check_int(arguments['--initial_base'])
     if initial_base < 2:
         return print('Incorrect base')
-    if initial_base > MAX_IBASE:
+    if initial_base > MAX_IBASE and implementations.get(str(initial_base)) == None:
         try:
             IBASES=open('bases/'+str(initial_base), 'r').read()
             MAX_IBASE=len(IBASES)-1
@@ -123,7 +145,7 @@ def main():
         goal_base=check_int(arguments['--goal_base'])
     if goal_base < 2:
         return print('Incorrect base')
-    if goal_base > MAX_GBASE:
+    if goal_base > MAX_GBASE and implementations.get(str(goal_base)) == None:
         try:
             GBASES=open('bases/'+str(goal_base), 'r').read()
             MAX_GBASE=len(GBASES)-1
@@ -132,11 +154,29 @@ def main():
     if goal_base == initial_base:
         return print('Useless operation (same base)')
     value='0'
+
+    initial_base_module=None
+    goal_base_module=None
+
+    if implementations.get(str(goal_base)) != None:
+        goal_base_module=importlib.import_module('implementations.'+str(goal_base), '.')
+        if goal_base_module.implementation() != hashlib.sha256((str(goal_base)+'BASE'+'implementation'+'from_base'+'to_base').encode()).hexdigest():
+            print('Invalid implementation')
+            exit()
+        GBASES=goal_base_module.BASE
+
+    if implementations.get(str(initial_base)) != None:
+        initial_base_module=importlib.import_module('implementations.'+str(initial_base), '.')
+        if initial_base_module.implementation() != hashlib.sha256((str(initial_base)+'BASE'+'implementation'+'from_base'+'to_base').encode()).hexdigest():
+            print('Invalid implementation')
+            exit()
+        IBASES=initial_base_module.BASE
+
     if arguments.get('--value') != None:
         value=arguments['--value']
     else:
         value=input('What is your value ? ').replace(' ', '')
-    convert_base_to_base(value, initial_base, goal_base)
+    convert_base_to_base(value, initial_base, goal_base, initial_base_module, goal_base_module)
 
 def help():
     print('\nTo automate the program you can provide parameters via console arguments')
