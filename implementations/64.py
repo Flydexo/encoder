@@ -8,7 +8,7 @@ def base_to_binary(value):
     binary=''
     for v in range(len(value.replace('=', ''))):
         remainder=0
-        multiplier=basestr.index(value[v])
+        multiplier=BASE.index(value[v])
         remainders=[];
 
         if multiplier == 0:

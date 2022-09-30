@@ -1,3 +1,4 @@
+from ast import arg
 import hashlib
 import sys
 import os
@@ -6,6 +7,7 @@ import importlib
 MAX_LENGTH=8
 BIT_SPLIT=4
 
+# getting all available implementations
 def load_implementations():
     implementations_files = [f for f in os.listdir('implementations') if os.path.isfile('./implementations/'+f) and f.endswith('.py')]
     implementations={}
@@ -21,11 +23,11 @@ def base_to_decimal(value, base):
     dec_value=0
     for i in range(len(value_list)):
         try:
-            v=IBASES.index(value_list[i])
+            v=IBASES.index(value_list[i]) # gets the index of the character
             if v >= base:
                 print('Wrong character in string for base')
                 exit()
-            dec_value+=v*base**i 
+            dec_value+=v*base**i # to decimal with the base, index and power
         except:
             print('Wrong character in string for base')
             exit()
@@ -65,99 +67,31 @@ def decimal_to_base(value, base):
 
 def convert_base_to_base(value, i_base, g_base, initial_base_module, goal_base_module):
     dec_value=0
-    if initial_base_module:
+    if initial_base_module: # check if implementation for initial base, and if so execute its function if not default function
         dec_value=initial_base_module.from_base(value)
     else:
         dec_value=base_to_decimal(value, i_base)
     final_value=0
-    if goal_base_module:
+    if goal_base_module: # check if implementation for goal base, and if so execute its function if not default function
         final_value=goal_base_module.to_base(value)
     else:
         final_value=decimal_to_base(dec_value, g_base)
 
-    if len(final_value.replace(' ', '')) > MAX_LENGTH:
+    if len(final_value.replace(' ', '')) > MAX_LENGTH: # check if final length is more than MAX_LENGTH
         return print('Value too high (max 8 symbols)')
-    if(g_base == 10):
+    if(g_base == 10): # if base is ten remove all spaces
         final_value = str(int(final_value.replace(' ', '')))
     print('Result: '+final_value)
 
+# check if i is an int
 def check_int(i): 
     try:
         return int(i)
     except:
         return -1
 
-def main():
-    print('Type --help for help')
-
-    arguments = {}
-
-    if len(sys.argv) > 1:
-        for i in range(1, len(sys.argv)):
-            try:
-                decomposed_arg=sys.argv[i].split('=')
-                index=decomposed_arg[0]
-                value=sys.argv[i][len(index)+1:len(sys.argv[i])]
-                arguments[index] = value
-            except:
-                print('Could not read argument', sys.argv[i])
-
-    implementations = load_implementations()
-
-    global IBASES
-    global GBASES
-    global MAX_IBASE
-    global MAX_GBASE
-    IBASES=open('bases/16', 'r').read()
-    if arguments.get('--initial_base_file') != None:
-        try:
-            IBASES=open(arguments['--initial_base_file'], 'r').read()
-        except:
-            print('Could not get your custom initial base')
-            exit()
-    GBASES=open('bases/16', 'r').read()
-    if arguments.get('--goal_base_file') != None:
-        try:
-            GBASES=open(arguments['--goal_base_file'], 'r').read()
-        except:
-            print('Could not get your custom goal base')
-            exit()
-    MAX_IBASE=len(IBASES)-1
-    MAX_GBASE=len(GBASES)-1
-
-    initial_base=0
-    if None == arguments.get('--initial_base'):
-        initial_base=check_int(input('What is your initial base ? '))
-    else:
-        initial_base=check_int(arguments['--initial_base'])
-    if initial_base < 2:
-        return print('Incorrect base')
-    if initial_base > MAX_IBASE and implementations.get(str(initial_base)) == None:
-        try:
-            IBASES=open('bases/'+str(initial_base), 'r').read()
-            MAX_IBASE=len(IBASES)-1
-        except:
-            return print('Initial base is too high or not found')
-    goal_base=0
-    if None == arguments.get('--goal_base'):
-        goal_base=check_int(input('What is your goal base ? '))
-    else:
-        goal_base=check_int(arguments['--goal_base'])
-    if goal_base < 2:
-        return print('Incorrect base')
-    if goal_base > MAX_GBASE and implementations.get(str(goal_base)) == None:
-        try:
-            GBASES=open('bases/'+str(goal_base), 'r').read()
-            MAX_GBASE=len(GBASES)-1
-        except:
-            return print('Goal base is too high or not found')
-    if goal_base == initial_base:
-        return print('Useless operation (same base)')
-    value='0'
-
-    initial_base_module=None
-    goal_base_module=None
-
+# check if an implementation is valid
+def check_implementations(implementations, initial_base, goal_base, IBASES, GBASES):
     if implementations.get(str(goal_base)) != None:
         goal_base_module=importlib.import_module('implementations.'+str(goal_base), '.')
         if goal_base_module.implementation() != hashlib.sha256((str(goal_base)+'BASE'+'implementation'+'from_base'+'to_base').encode()).hexdigest():
@@ -171,13 +105,104 @@ def main():
             print('Invalid implementation')
             exit()
         IBASES=initial_base_module.BASE
+    
+    return [IBASES, GBASES]
 
+# transforms string args to an object
+def parse_arguments():
+    arguments = {}
+    if len(sys.argv) > 1:
+        for i in range(1, len(sys.argv)):
+            try:
+                decomposed_arg=sys.argv[i].split('=')
+                index=decomposed_arg[0]
+                value=sys.argv[i][len(index)+1:len(sys.argv[i])] # get first part before equal sign and after
+                arguments[index] = value
+            except:
+                print('Could not read argument', sys.argv[i])
+
+    return arguments
+
+# check if provided bases files
+def check_bases(arguments):
+    IBASES=open('bases/16', 'r').read()
+    GBASES=open('bases/16', 'r').read()
+    if arguments.get('--initial_base_file') != None:
+        try:
+            IBASES=open(arguments['--initial_base_file'], 'r').read()
+        except:
+            print('Could not get your custom initial base')
+            exit()
+    if arguments.get('--goal_base_file') != None:
+        try:
+            GBASES=open(arguments['--goal_base_file'], 'r').read()
+        except:
+            print('Could not get your custom goal base')
+            exit()
+
+    return [IBASES, GBASES]
+
+# get base from argument of input
+def get_base(arguments, implementations, key, MAX_BASE, BASES):
+    base=0
+    
+    if None == arguments.get('--'+key+'_base'):
+        base=check_int(input('What is your '+key+' base ? '))
+    else:
+        base=check_int(arguments['--'+key+'_base'])
+    if base < 2:
+        return print('Incorrect base')
+    if base > MAX_BASE and implementations.get(str(base)) == None:
+        try:
+            BASES=open('bases/'+str(base), 'r').read()
+            MAX_BASE=len(BASES)-1
+        except:
+            return print(key+' base is too high or not found')
+    
+    return [base, MAX_BASE, BASES]
+
+# get value from argument or input
+def get_value(arguments):
+    value='0'
     if arguments.get('--value') != None:
         value=arguments['--value']
     else:
         value=input('What is your value ? ').replace(' ', '')
+
+    return value
+
+def main():
+    print('Type --help for help')
+
+    arguments = parse_arguments()
+    implementations = load_implementations()
+
+    global IBASES
+    global GBASES
+    global MAX_IBASE
+    global MAX_GBASE
+
+    [IBASES, GBASES] = check_bases(arguments)
+
+    MAX_IBASE=len(IBASES)-1
+    MAX_GBASE=len(GBASES)-1
+
+    [initial_base, MAX_GBASE, GBASES]=get_base(arguments, implementations, "initial", MAX_IBASE, IBASES)
+    [goal_base, MAX_IBASE, IBASES]=get_base(arguments, implementations, "goal", MAX_GBASE, GBASES)
+
+    if goal_base == initial_base:
+        return print('Useless operation (same base)')
+
+    value=get_value(arguments)
+
+    initial_base_module=None
+    goal_base_module=None
+
+    [IBASES, GBASES] = check_implementations(implementations, initial_base, goal_base, IBASES, GBASES)
+
     convert_base_to_base(value, initial_base, goal_base, initial_base_module, goal_base_module)
 
+# help function executed when --help is typed
 def help():
     print('\nTo automate the program you can provide parameters via console arguments')
     print('\nArguments:')
@@ -188,6 +213,7 @@ def help():
     print('--goal_base_file    | The path to the base you want to encode to if not between 2 and 16 or 32, 58, 64')
     print('\n')
 
+# check if help, is so execute help if not main
 if len(sys.argv) > 1 and sys.argv[1] == '--help':
     help()
 else:
