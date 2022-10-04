@@ -151,13 +151,15 @@ def get_base(arguments, implementations, key, MAX_BASE, BASES):
     else:
         base=check_int(arguments['--'+key+'_base'])
     if base < 2:
-        return print('Incorrect base')
+        print('Incorrect base')
+        exit()
     if base > MAX_BASE and implementations.get(str(base)) == None:
         try:
             BASES=open('bases/'+str(base), 'r').read()
             MAX_BASE=len(BASES)-1
         except:
-            return print(key+' base is too high or not found')
+            print(key+' base is too high or not found')
+            exit()
     
     return [base, MAX_BASE, BASES]
 
