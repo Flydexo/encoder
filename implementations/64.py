@@ -1,5 +1,7 @@
 import hashlib
-from operator import index
+import sys
+sys.path.insert(0, '../')
+import utils
 
 BASE="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
 PADDING="="
@@ -23,9 +25,7 @@ def base_to_binary(value):
         if zeros_to_add != 0:
             remainders = remainders + ['0'] * zeros_to_add
 
-        remainders.reverse()
-
-        print(remainders)
+        remainders=utils.reverse(remainders)
 
         binary+=''.join(remainders)
         
@@ -46,13 +46,13 @@ def decimal_to_binary(value, l=8):
     if zeros_to_add != 0:
         remainders = remainders + ['0'] * zeros_to_add
 
-    remainders.reverse()
+    remainders=utils.reverse(remainders)
 
     return ''.join(remainders)
 
 def binary_to_decimal(value):
     value_list = list(value)
-    value_list.reverse()
+    value_list=utils.reverse(value_list)
     dec_value=0
     for i in range(len(value_list)):
         try:

@@ -3,6 +3,7 @@ import hashlib
 import sys
 import os
 import importlib
+import utils
 
 MAX_LENGTH=8
 BIT_SPLIT=4
@@ -19,7 +20,7 @@ def load_implementations():
 
 def base_to_decimal(value, base):
     value_list = list(value)
-    value_list.reverse()
+    value_list=utils.reverse(value_list)
     dec_value=0
     for i in range(len(value_list)):
         try:
@@ -92,6 +93,8 @@ def check_int(i):
 
 # check if an implementation is valid
 def check_implementations(implementations, initial_base, goal_base, IBASES, GBASES):
+    goal_base_module=None
+    initial_base_module=None
     if implementations.get(str(goal_base)) != None:
         goal_base_module=importlib.import_module('implementations.'+str(goal_base), '.')
         if goal_base_module.implementation() != hashlib.sha256((str(goal_base)+'BASE'+'implementation'+'from_base'+'to_base').encode()).hexdigest():
@@ -106,7 +109,7 @@ def check_implementations(implementations, initial_base, goal_base, IBASES, GBAS
             exit()
         IBASES=initial_base_module.BASE
     
-    return [IBASES, GBASES]
+    return [IBASES, GBASES, initial_base_module, goal_base_module]
 
 # transforms string args to an object
 def parse_arguments():
@@ -197,10 +200,7 @@ def main():
 
     value=get_value(arguments)
 
-    initial_base_module=None
-    goal_base_module=None
-
-    [IBASES, GBASES] = check_implementations(implementations, initial_base, goal_base, IBASES, GBASES)
+    [IBASES, GBASES, initial_base_module, goal_base_module] = check_implementations(implementations, initial_base, goal_base, IBASES, GBASES)
 
     convert_base_to_base(value, initial_base, goal_base, initial_base_module, goal_base_module)
 
